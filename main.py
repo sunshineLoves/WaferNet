@@ -8,7 +8,7 @@ import argparse
 from omegaconf import OmegaConf
 from timm import create_model
 from data import create_dataset, create_dataloader
-from models import MemSeg, MemoryBank
+from models import DMemSeg, MemoryBank
 from focal_loss import FocalLoss
 from train import training
 from log import setup_default_logging
@@ -109,7 +109,7 @@ def run(cfg):
     _logger.info('Update {} normal samples in memory bank'.format(cfg.MEMORYBANK.nb_memory_sample))
 
     # build MemSeg
-    model = MemSeg(
+    model = DMemSeg(
         memory_bank       = memory_bank,
         feature_extractor = feature_extractor
     ).to(device)

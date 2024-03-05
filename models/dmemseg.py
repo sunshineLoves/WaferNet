@@ -2,9 +2,9 @@ import torch.nn as nn
 from .decoder import Decoder
 from .msff import MSFF
 
-class MemSeg(nn.Module):
+class DMemSeg(nn.Module):
     def __init__(self, memory_bank, feature_extractor):
-        super(MemSeg, self).__init__()
+        super(DMemSeg, self).__init__()
 
         self.memory_bank = memory_bank
         self.feature_extractor = feature_extractor
