@@ -7,7 +7,7 @@ from typing import List, Tuple
 
 class DMemSeg(nn.Module):
     def __init__(self, feature_extractor, num_memory: int, feature_shapes: List[Tuple[int, int, int]],
-                 threshold: float = 0.5, epsilon: float = 1e-12):
+                 threshold: float = 0.0025, epsilon: float = 1e-12):
         super(DMemSeg, self).__init__()
 
         self.memory_module = MemoryModule(num_memory, feature_shapes, threshold, epsilon)
