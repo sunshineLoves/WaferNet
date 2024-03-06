@@ -37,11 +37,11 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, n
              loss_weights: List[float] = [0.6, 0.4],
              log_interval: int = 1, eval_interval: int = 1, savedir: str = None, use_wandb: bool = False,
              device: str = 'cpu') -> dict:
-    # model.train()
-    # with torch.no_grad():
-    #     for inputs, masks, targets in trainloader:
-    #         inputs, masks, targets = inputs.to(device), masks.to(device), targets.to(device)
-    #         outputs, weight = model(inputs)
+    model.train()
+    with torch.no_grad():
+        for inputs, masks, targets in trainloader:
+            inputs, masks, targets = inputs.to(device), masks.to(device), targets.to(device)
+            outputs, weight = model(inputs)
 
     batch_time_m = AverageMeter()
     data_time_m = AverageMeter()
