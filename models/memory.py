@@ -8,7 +8,7 @@ import numpy as np
 class MemoryModule(nn.Module):
     def __init__(self, memory_size: int, shapes: List[Tuple[int, int, int]], threshold: float = 0.5,
                  epsilon: float = 1e-12):
-        super(MemoryUnit, self).__init__()
+        super(MemoryModule, self).__init__()
         self.memory_size = memory_size
         self.num_feature = len(shapes)
         self.shapes = shapes
