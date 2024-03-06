@@ -28,6 +28,7 @@ class MemoryModule(nn.Module):
     def hard_shrink(self, weight: torch.Tensor):
         print(weight.shape)
         print(weight)
+        print(f'info: {self.threshold} - {self.epsilon}')
         output = (F.relu(weight - self.threshold) * weight) / (torch.abs(weight - self.threshold) + self.epsilon)
         print(output.shape)
         print(output)
