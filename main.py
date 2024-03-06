@@ -101,9 +101,9 @@ def run(cfg):
         device=device
     )
     ## update normal samples and save
-    memory_bank.update(feature_extractor=feature_extractor)
-    torch.save(memory_bank, os.path.join(savedir, f'memory_bank.pt'))
-    _logger.info('Update {} normal samples in memory bank'.format(cfg.MEMORYBANK.nb_memory_sample))
+    # memory_bank.update(feature_extractor=feature_extractor)
+    # torch.save(memory_bank, os.path.join(savedir, f'memory_bank.pt'))
+    # _logger.info('Update {} normal samples in memory bank'.format(cfg.MEMORYBANK.nb_memory_sample))
 
     # build MemSeg
     model = DMemSeg(
