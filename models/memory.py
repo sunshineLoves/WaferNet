@@ -23,7 +23,7 @@ class MemoryModule(nn.Module):
 
     def forward(self, features: List[torch.Tensor]):
         batch_size = features[0].size(0)
-        memory_weights_featured = torch.Tensor(batch_size, self.num_feature, self.memory_size)
+        memory_weights_featured = []
         for i, memory in enumerate(self.memory_list):
             # (batch_size, C * H * W)
             flatten_feature = features[i].view(batch_size, -1)
@@ -32,9 +32,10 @@ class MemoryModule(nn.Module):
             normalized_memory = F.normalize(memory, p=2, dim=1)
             # (batch_size, memory_size)
             weight = F.linear(normalized_feature, normalized_memory)
-            memory_weights_featured[:, i, :] = weight
+            memory_weights_featured += [weight]
         # (batch_size, memory_size)
-        memory_weight = torch.mean(memory_weights_featured, dim=1)
+        memory_weights_featured = torch.stack(memory_weights_featured)
+        memory_weight = torch.mean(memory_weights_featured, dim=0)
         memory_weight = F.softmax(memory_weight, dim=1)
         memory_weight = self.hard_shrink(memory_weight)
         memory_weight = F.normalize(memory_weight, p=2, dim=1)
