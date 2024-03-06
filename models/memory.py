@@ -8,7 +8,7 @@ import numpy as np
 
 
 class MemoryModule(nn.Module):
-    def __init__(self, memory_size: int, shapes: List[Tuple[int, int, int]], threshold: float = 0.5,
+    def __init__(self, memory_size: int, shapes: List[Tuple[int, int, int]], threshold: float = 0.0025,
                  epsilon: float = 1e-12):
         super(MemoryModule, self).__init__()
         self.memory_size = memory_size
@@ -49,7 +49,6 @@ class MemoryModule(nn.Module):
         memory_weight = self.hard_shrink(memory_weight)
         print(memory_weight)
         memory_weight = F.normalize(memory_weight, p=2, dim=1)
-        print(memory_weight)
 
         attention_features = []
         for feature, memory, shape in zip(features, self.memory_list, self.shapes):
