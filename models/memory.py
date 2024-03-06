@@ -5,7 +5,7 @@ from torch.nn import functional as F
 import numpy as np
 
 
-class MemoryUnit(nn.Module):
+class MemoryModule(nn.Module):
     def __init__(self, memory_size: int, shapes: List[Tuple[int, int, int]], threshold: float = 0.5,
                  epsilon: float = 1e-12):
         super(MemoryUnit, self).__init__()
