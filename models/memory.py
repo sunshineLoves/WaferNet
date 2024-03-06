@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import nn
 from typing import List, Tuple
@@ -16,6 +18,12 @@ class MemoryModule(nn.Module):
             [nn.Parameter(torch.Tensor(self.memory_size, C * H * W)) for C, H, W in shapes])
         self.threshold = threshold
         self.epsilon = epsilon
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        for memory in self.memory_list:
+            stdv = 1. / math.sqrt(memory.size(1))
+            memory.data.uniform_(-stdv, stdv)
 
     def hard_shrink(self, weight: torch.Tensor):
         output = (F.relu(weight - self.threshold) * weight) / (torch.abs(weight - self.threshold) + self.epsilon)
