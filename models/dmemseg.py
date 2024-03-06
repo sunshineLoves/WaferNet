@@ -1,12 +1,16 @@
-import torch.nn as nn
+from torch import nn
+from .memory import MemoryModule
 from .decoder import Decoder
 from .msff import MSFF
+from typing import List, Tuple
+
 
 class DMemSeg(nn.Module):
-    def __init__(self, memory_bank, feature_extractor):
+    def __init__(self, feature_extractor, num_memory: int, feature_shapes: List[Tuple[int, int, int]],
+                 threshold: float = 0.5, epsilon: float = 1e-12):
         super(DMemSeg, self).__init__()
 
-        self.memory_bank = memory_bank
+        self.memory_module = MemoryModule(num_memory, feature_shapes, threshold, epsilon)
         self.feature_extractor = feature_extractor
         self.msff = MSFF()
         self.decoder = Decoder()
@@ -14,20 +18,19 @@ class DMemSeg(nn.Module):
     def forward(self, inputs):
         # extract features
         features = self.feature_extractor(inputs)
-        f_in = features[0]
-        f_out = features[-1]
-        f_ii = features[1:-1]
+        feature0 = features[0]
+        feature13 = features[1:-1]
+        feature4 = features[-1]
 
         # extract concatenated information(CI)
-        concat_features = self.memory_bank.select(features = f_ii)
-
+        concat_features, weight = self.memory_module(feature13)
         # Multi-scale Feature Fusion(MSFF) Module
-        msff_outputs = self.msff(features = concat_features)
+        msff_outputs = self.msff(features=concat_features)
 
         # decoder
         predicted_mask = self.decoder(
-            encoder_output  = f_out,
-            concat_features = [f_in] + msff_outputs
+            encoder_output=feature4,
+            concat_features=[feature0] + msff_outputs
         )
 
-        return predicted_mask
+        return predicted_mask, weight
