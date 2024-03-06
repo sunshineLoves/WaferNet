@@ -79,7 +79,7 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, n
             l1_loss = l1_criterion(outputs[:, 1, :], masks)
             focal_loss = focal_criterion(outputs, masks)
             print(weight)
-            entropy_loss = torch.mean(torch.sum(-weight * torch.log(weight + 1e-12), dim=1))
+            entropy_loss = torch.mean(-weight * torch.log(weight + 1e-12))
             print(entropy_loss)
             loss = (l1_weight * l1_loss) + (focal_weight * focal_loss) + entropy_loss
 
