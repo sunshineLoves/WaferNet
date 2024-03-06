@@ -17,6 +17,7 @@ from scheduler import CosineAnnealingWarmupRestarts
 
 _logger = logging.getLogger('train')
 
+os.environ['WANDB_MODE'] = 'offline'
 
 def run(cfg):
     # setting seed and device
