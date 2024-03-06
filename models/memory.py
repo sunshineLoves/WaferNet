@@ -26,7 +26,11 @@ class MemoryModule(nn.Module):
             memory.data.uniform_(-stdv, stdv)
 
     def hard_shrink(self, weight: torch.Tensor):
+        print(weight.shape)
+        print(weight)
         output = (F.relu(weight - self.threshold) * weight) / (torch.abs(weight - self.threshold) + self.epsilon)
+        print(output.shape)
+        print(output)
         return output
 
     def forward(self, features: List[torch.Tensor]):
@@ -43,15 +47,9 @@ class MemoryModule(nn.Module):
             memory_weights_featured += [weight]
         # (batch_size, memory_size)
         memory_weights_featured = torch.stack(memory_weights_featured)
-        print(memory_weights_featured.shape)
-        print(memory_weights_featured)
         memory_weight = torch.mean(memory_weights_featured, dim=0)
-        print(memory_weight.shape)
-        print(memory_weight)
         memory_weight = F.softmax(memory_weight, dim=1)
         memory_weight = self.hard_shrink(memory_weight)
-        print(memory_weight.shape)
-        print(memory_weight)
         memory_weight = F.normalize(memory_weight, p=2, dim=1)
 
         attention_features = []
