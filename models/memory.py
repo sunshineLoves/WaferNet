@@ -44,6 +44,8 @@ class MemoryModule(nn.Module):
             print(normalized_memory)
             # (batch_size, memory_size)
             weight = F.linear(normalized_feature, normalized_memory)
+            print(weight.shape)
+            print(weight)
             memory_weights_featured += [weight]
         # (batch_size, memory_size)
         memory_weights_featured = torch.stack(memory_weights_featured)
