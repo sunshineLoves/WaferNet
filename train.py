@@ -78,7 +78,9 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, n
             outputs = F.softmax(outputs, dim=1)
             l1_loss = l1_criterion(outputs[:, 1, :], masks)
             focal_loss = focal_criterion(outputs, masks)
+            print(weight)
             entropy_loss = torch.mean(torch.sum(-weight * torch.log(weight), dim=1))
+            print(entropy_loss)
             loss = (l1_weight * l1_loss) + (focal_weight * focal_loss) + entropy_loss
 
             loss.backward()
