@@ -138,6 +138,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# pretrained
+pretrained/
+
 # pycharm
 .idea/
 
