@@ -153,7 +153,7 @@ class MemSegDataset(Dataset):
         step 2. generate texture or structure anomaly
             - texture: load DTD
             - structure: we first perform random adjustment of mirror symmetry, rotation, brightness, saturation, 
-            and hue on the input image  𝐼 . Then the preliminary processed image is uniformly divided into a 4×8 grid 
+            and hue on the inputs image  𝐼 . Then the preliminary processed image is uniformly divided into a 4×8 grid
             and randomly arranged to obtain the disordered image  𝐼 
             
         step 3. blending image and anomaly source

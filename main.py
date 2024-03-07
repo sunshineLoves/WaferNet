@@ -3,112 +3,94 @@ import logging
 import os
 import torch
 import torch.nn as nn
-import argparse
 
 from omegaconf import OmegaConf
 from timm import create_model
 from data import create_dataset, create_dataloader
-from models import DMemSeg, MemoryBank
-from focal_loss import FocalLoss
+from models import DMemSeg
+from loss import FocalLoss, EntropyLoss
 from train import training
 from log import setup_default_logging
 from utils import torch_seed
 from scheduler import CosineAnnealingWarmupRestarts
 
-_logger = logging.getLogger('train')
-
 os.environ['WANDB_MODE'] = 'offline'
 
-def run(cfg):
+logger = logging.getLogger('train')
+
+
+def run(config):
     # setting seed and device
     setup_default_logging()
-    torch_seed(cfg.SEED)
+    torch_seed(config.SEED)
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    _logger.info('Device: {}'.format(device))
+    logger.info('Device: {}'.format(device))
 
-    # savedir
-    cfg.EXP_NAME = cfg.EXP_NAME + f"-{cfg.DATASET.target}"
-    savedir = os.path.join(cfg.RESULT.savedir, cfg.EXP_NAME)
-    os.makedirs(savedir, exist_ok=True)
+    # save_dir
+    config.EXP_NAME = config.EXP_NAME + f"-{config.DATASET.target}"
+    save_dir = os.path.join(config.RESULT.save_dir, config.EXP_NAME)
+    os.makedirs(save_dir, exist_ok=True)
 
     # wandb
-    if cfg.TRAIN.use_wandb:
-        wandb.init(name=cfg.EXP_NAME, project='MemSeg', config=OmegaConf.to_container(cfg))
+    if config.TRAIN.use_wandb:
+        wandb.init(name=config.EXP_NAME, project='MemSeg', config=OmegaConf.to_container(config))
 
     # build datasets
-    trainset = create_dataset(
-        datadir=cfg.DATASET.datadir,
-        target=cfg.DATASET.target,
+    train_set = create_dataset(
+        datadir=config.DATASET.datadir,
+        target=config.DATASET.target,
         is_train=True,
-        resize=cfg.DATASET.resize,
-        texture_source_dir=cfg.DATASET.texture_source_dir,
-        structure_grid_size=cfg.DATASET.structure_grid_size,
-        transparency_range=cfg.DATASET.transparency_range,
-        perlin_scale=cfg.DATASET.perlin_scale,
-        min_perlin_scale=cfg.DATASET.min_perlin_scale,
-        perlin_noise_threshold=cfg.DATASET.perlin_noise_threshold,
-        use_mask=cfg.DATASET.use_mask,
-        bg_threshold=cfg.DATASET.bg_threshold,
-        bg_reverse=cfg.DATASET.bg_reverse
+        resize=config.DATASET.resize,
+        texture_source_dir=config.DATASET.texture_source_dir,
+        structure_grid_size=config.DATASET.structure_grid_size,
+        transparency_range=config.DATASET.transparency_range,
+        perlin_scale=config.DATASET.perlin_scale,
+        min_perlin_scale=config.DATASET.min_perlin_scale,
+        perlin_noise_threshold=config.DATASET.perlin_noise_threshold,
+        use_mask=config.DATASET.use_mask,
+        bg_threshold=config.DATASET.bg_threshold,
+        bg_reverse=config.DATASET.bg_reverse
     )
 
-    memoryset = create_dataset(
-        datadir=cfg.DATASET.datadir,
-        target=cfg.DATASET.target,
-        is_train=True,
-        to_memory=True,
-        resize=cfg.DATASET.resize
-    )
-
-    testset = create_dataset(
-        datadir=cfg.DATASET.datadir,
-        target=cfg.DATASET.target,
+    test_set = create_dataset(
+        datadir=config.DATASET.datadir,
+        target=config.DATASET.target,
         is_train=False,
-        resize=cfg.DATASET.resize
+        resize=config.DATASET.resize
     )
 
     # build dataloader
-    trainloader = create_dataloader(
-        dataset=trainset,
+    train_dataloader = create_dataloader(
+        dataset=train_set,
         train=True,
-        batch_size=cfg.DATALOADER.batch_size,
-        num_workers=cfg.DATALOADER.num_workers
+        batch_size=config.DATALOADER.batch_size,
+        num_workers=config.DATALOADER.num_workers
     )
 
-    testloader = create_dataloader(
-        dataset=testset,
+    test_dataloader = create_dataloader(
+        dataset=test_set,
         train=False,
-        batch_size=cfg.DATALOADER.batch_size,
-        num_workers=cfg.DATALOADER.num_workers
+        batch_size=config.DATALOADER.batch_size,
+        num_workers=config.DATALOADER.num_workers
     )
 
     # build feature extractor
     feature_extractor = create_model(
-        cfg.MODEL.feature_extractor_name,
-        pretrained=True,
+        config.MODEL.feature_extractor_name,
+        pretrained=False,
         features_only=True
     ).to(device)
-    ## freeze weight of layer1,2,3
-    for l in ['layer1', 'layer2', 'layer3']:
-        for p in feature_extractor[l].parameters():
-            p.requires_grad = False
+    feature_extractor.load_state_dict(torch.load(f'pretrained/{config.MODEL.feature_extractor_name}.pth'))
+    # freeze weight of layer 1,2,3
+    for layer in ['layer1', 'layer2', 'layer3']:
+        for param in feature_extractor[layer].parameters():
+            param.requires_grad = False
 
-    # build memory bank
-    memory_bank = MemoryBank(
-        normal_dataset=memoryset,
-        nb_memory_sample=cfg.MEMORYBANK.nb_memory_sample,
-        device=device
-    )
-    ## update normal samples and save
-    # memory_bank.update(feature_extractor=feature_extractor)
-    # torch.save(memory_bank, os.path.join(savedir, f'memory_bank.pt'))
-    # _logger.info('Update {} normal samples in memory bank'.format(cfg.MEMORYBANK.nb_memory_sample))
-
-    # build MemSeg
+    # build DMemSeg
     model = DMemSeg(
         feature_extractor=feature_extractor,
-        num_memory=256,
+        num_memory=config.MEMORY.memory_size,
         feature_shapes=[
             (64, 64, 64),
             (128, 32, 32),
@@ -119,23 +101,24 @@ def run(cfg):
     # Set training
     l1_criterion = nn.L1Loss()
     f_criterion = FocalLoss(
-        gamma=cfg.TRAIN.focal_gamma,
-        alpha=cfg.TRAIN.focal_alpha
+        gamma=config.TRAIN.focal_gamma,
+        alpha=config.TRAIN.focal_alpha
     )
+    entropy_criterion = EntropyLoss(epsilon=config.TRAIN.epsilon)
 
     optimizer = torch.optim.AdamW(
         params=filter(lambda p: p.requires_grad, model.parameters()),
-        lr=cfg.OPTIMIZER.lr,
-        weight_decay=cfg.OPTIMIZER.weight_decay
+        lr=config.OPTIMIZER.lr,
+        weight_decay=config.OPTIMIZER.weight_decay
     )
 
-    if cfg['SCHEDULER']['use_scheduler']:
+    if config['SCHEDULER']['use_scheduler']:
         scheduler = CosineAnnealingWarmupRestarts(
             optimizer,
-            first_cycle_steps=cfg.TRAIN.num_training_steps,
-            max_lr=cfg.OPTIMIZER.lr,
-            min_lr=cfg.SCHEDULER.min_lr,
-            warmup_steps=int(cfg.TRAIN.num_training_steps * cfg.SCHEDULER.warmup_ratio)
+            first_cycle_steps=config.TRAIN.num_training_steps,
+            max_lr=config.OPTIMIZER.lr,
+            min_lr=config.SCHEDULER.min_lr,
+            warmup_steps=int(config.TRAIN.num_training_steps * config.SCHEDULER.warmup_ratio)
         )
     else:
         scheduler = None
@@ -143,34 +126,34 @@ def run(cfg):
     # Fitting model
     training(
         model=model,
-        num_training_steps=cfg.TRAIN.num_training_steps,
-        trainloader=trainloader,
-        validloader=testloader,
-        criterion=[l1_criterion, f_criterion],
-        loss_weights=[cfg.TRAIN.l1_weight, cfg.TRAIN.focal_weight],
+        num_training_steps=config.TRAIN.num_training_steps,
+        train_dataloader=train_dataloader,
+        valid_dataloader=test_dataloader,
+        criterion=(l1_criterion, f_criterion, entropy_criterion),
+        loss_weights=(config.TRAIN.l1_weight, config.TRAIN.focal_weight, config.TRAIN.entropy_weight),
         optimizer=optimizer,
         scheduler=scheduler,
-        log_interval=cfg.LOG.log_interval,
-        eval_interval=cfg.LOG.eval_interval,
-        savedir=savedir,
+        log_interval=config.LOG.log_interval,
+        eval_interval=config.LOG.eval_interval,
+        save_dir=save_dir,
         device=device,
-        use_wandb=cfg.TRAIN.use_wandb
+        use_wandb=config.TRAIN.use_wandb
     )
 
 
 if __name__ == '__main__':
     args = OmegaConf.from_cli()
     # load default config
-    cfg = OmegaConf.load(args.configs)
+    configs = OmegaConf.load(args.configs)
     del args['configs']
 
     # merge config with new keys
-    cfg = OmegaConf.merge(cfg, args)
+    configs = OmegaConf.merge(configs, args)
 
-    # target cfg
-    target_cfg = OmegaConf.load(cfg.DATASET.anomaly_mask_info)
-    cfg.DATASET = OmegaConf.merge(cfg.DATASET, target_cfg[cfg.DATASET.target])
+    # target config
+    target_config = OmegaConf.load(configs.DATASET.anomaly_mask_info)
+    configs.DATASET = OmegaConf.merge(configs.DATASET, target_config[configs.DATASET.target])
 
-    print(OmegaConf.to_yaml(cfg))
+    print(OmegaConf.to_yaml(configs))
 
-    run(cfg)
+    run(configs)

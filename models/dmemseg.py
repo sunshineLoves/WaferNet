@@ -12,7 +12,7 @@ class DMemSeg(nn.Module):
 
         self.memory_module = MemoryModule(num_memory, feature_shapes, threshold, epsilon)
         self.feature_extractor = feature_extractor
-        self.msff = MSFF()
+        self.feature_fusion = MSFF()
         self.decoder = Decoder()
 
     def forward(self, inputs):
@@ -22,15 +22,15 @@ class DMemSeg(nn.Module):
         feature13 = features[1:-1]
         feature4 = features[-1]
 
-        # extract concatenated information(CI)
-        concat_features, weight = self.memory_module(feature13)
-        # Multi-scale Feature Fusion(MSFF) Module
-        msff_outputs = self.msff(features=concat_features)
+        # extract concatenated information (CI)
+        concat_features, weights = self.memory_module(feature13)
+        # Multi-scale Feature Fusion Module
+        fused_features = self.feature_fusion(features=concat_features)
 
         # decoder
         predicted_mask = self.decoder(
             encoder_output=feature4,
-            concat_features=[feature0] + msff_outputs
+            concat_features=[feature0] + fused_features
         )
 
-        return predicted_mask, weight
+        return predicted_mask, weights

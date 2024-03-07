@@ -21,8 +21,8 @@ DATALOADER:
   batch_size: 8
   num_workers: 0
 
-MEMORYBANK:
-  nb_memory_sample: 30
+MEMORY:
+  memory_size: 30
 
 MODEL:
   feature_extractor_name: resnet18
@@ -32,8 +32,10 @@ TRAIN:
   num_training_steps: 5000
   l1_weight: 0.6
   focal_weight: 0.4
+  entropy_weight: 0.0002
   focal_alpha: null
   focal_gamma: 4
+  epsilon: 0.0025
   use_wandb: True
 
 OPTIMIZER:
@@ -50,4 +52,4 @@ LOG:
   eval_interval: 100
 
 RESULT:
-  savedir: ./saved_model
+  save_dir: ./saved_model
