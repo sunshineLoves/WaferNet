@@ -126,7 +126,7 @@ def run(config):
     # Fitting model
     training(
         model=model,
-        num_training_steps=config.TRAIN.num_training_steps,
+        epochs=config.TRAIN.epochs,
         train_dataloader=train_dataloader,
         valid_dataloader=test_dataloader,
         criterion=(l1_criterion, f_criterion, entropy_criterion),

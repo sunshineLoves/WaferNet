@@ -29,7 +29,7 @@ MODEL:
 
 TRAIN:
   batch_size: 8
-  num_training_steps: 5000
+  epochs: 32
   l1_weight: 0.6
   focal_weight: 0.4
   entropy_weight: 0.0002

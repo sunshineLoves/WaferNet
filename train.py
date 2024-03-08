@@ -2,6 +2,8 @@ import time
 import json
 import os
 
+from tqdm import tqdm
+
 import wandb
 import logging
 import torch
@@ -9,6 +11,7 @@ import torch.nn.functional as F
 import numpy as np
 from typing import List, Tuple
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import precision_recall_curve, auc
 from metrics import compute_pro, trapezoid
 
 logger = logging.getLogger('train')
@@ -36,15 +39,15 @@ class AverageMeter:
         self.avg = self.sum / self.count
 
 
-def training(model, train_dataloader, valid_dataloader, criterion, optimizer, scheduler, num_training_steps: int = 1000,
+def training(model, train_dataloader, valid_dataloader, criterion, optimizer, scheduler, epochs: int = 32,
              loss_weights: Tuple[float, float, float] = (0.6, 0.4, 0.0002),
              log_interval: int = 1, eval_interval: int = 1, save_dir: str = None, use_wandb: bool = False,
              device: str = 'cpu'):
-    model.train()
-    with torch.no_grad():
-        for inputs, masks, targets in train_dataloader:
-            inputs, masks, targets = inputs.to(device), masks.to(device), targets.to(device)
-            outputs, weight = model(inputs)
+    # model.train()
+    # with torch.no_grad():
+    #     for inputs, masks, targets in train_dataloader:
+    #         inputs, masks, targets = inputs.to(device), masks.to(device), targets.to(device)
+    #         outputs, weight = model(inputs)
 
     batch_time_m = AverageMeter()
     data_time_m = AverageMeter()
@@ -66,11 +69,11 @@ def training(model, train_dataloader, valid_dataloader, criterion, optimizer, sc
     # training
     best_score = 0
     step = 0
-    train_mode = True
-    while train_mode:
-
+    # train_mode = True
+    for epoch in range(epochs):
         end = time.time()
-        for inputs, masks, targets in train_dataloader:
+        pbar = tqdm(train_dataloader, desc=f"Train Epoch {epoch + 1}/{epochs}", unit='Epoch')
+        for inputs, masks, targets in pbar:
             # batch
             inputs, masks, targets = inputs.to(device), masks.to(device), targets.to(device)
 
@@ -108,54 +111,29 @@ def training(model, train_dataloader, valid_dataloader, criterion, optimizer, sc
                     'train_loss': losses_m.val
                 },
                     step=step)
-
-            if (step + 1) % log_interval == 0 or step == 0:
-                logger.info('TRAIN [{:>4d}/{}] '
-                            'Loss: {loss.val:>6.4f} ({loss.avg:>6.4f}) '
-                            'L1 Loss: {l1_loss.val:>6.4f} ({l1_loss.avg:>6.4f}) '
-                            'Focal Loss: {focal_loss.val:>6.4f} ({focal_loss.avg:>6.4f}) '
-                            'LR: {lr:.3e} '
-                            'Time: {batch_time.val:.3f}s, {rate:>7.2f}/s ({batch_time.avg:.3f}s, {rate_avg:>7.2f}/s) '
-                            'Data: {data_time.val:.3f} ({data_time.avg:.3f})'.format(
-                    step + 1, num_training_steps,
-                    loss=losses_m,
-                    l1_loss=l1_losses_m,
-                    focal_loss=focal_losses_m,
-                    lr=optimizer.param_groups[0]['lr'],
-                    batch_time=batch_time_m,
-                    rate=inputs.size(0) / batch_time_m.val,
-                    rate_avg=inputs.size(0) / batch_time_m.avg,
-                    data_time=data_time_m))
-
-            if ((step + 1) % eval_interval == 0 and step != 0) or (step + 1) == num_training_steps:
-                eval_metrics = evaluate(
-                    model=model,
-                    dataloader=valid_dataloader,
-                    device=device
-                )
-                model.train()
-
-                eval_log = dict([(f'eval_{k}', v) for k, v in eval_metrics.items()])
-
-                # wandb
-                if use_wandb:
-                    wandb.log(eval_log, step=step)
-
-                # checkpoint
-                if best_score < np.mean(list(eval_metrics.values())):
-                    # save best score
-                    state = {'best_step': step}
-                    state.update(eval_log)
-                    json.dump(state, open(os.path.join(save_dir, 'best_score.json'), 'w'), indent='\t')
-
-                    # save best model
-                    torch.save(model.state_dict(), os.path.join(save_dir, f'best_model.pt'))
-
-                    logger.info(
-                        'Best Score {0:.3%} to {1:.3%}'.format(best_score, np.mean(list(eval_metrics.values()))))
-
-                    best_score = np.mean(list(eval_metrics.values()))
-
+            pbar.set_postfix({'Loss': losses_m.val,
+                              'L1 Loss': l1_losses_m.val,
+                              'Focal Loss': focal_losses_m.val,
+                              'Entropy Loss': entropy_loss_m.val,
+                              'LR': optimizer.param_groups[0]['lr']
+                              })
+            # if (step + 1) % log_interval == 0 or step == 0:
+            #     logger.info('TRAIN [{:>4d}/{}] '
+            #                 'Loss: {loss.val:>6.4f} ({loss.avg:>6.4f}) '
+            #                 'L1 Loss: {l1_loss.val:>6.4f} ({l1_loss.avg:>6.4f}) '
+            #                 'Focal Loss: {focal_loss.val:>6.4f} ({focal_loss.avg:>6.4f}) '
+            #                 'LR: {lr:.3e} '
+            #                 'Time: {batch_time.val:.3f}s, {rate:>7.2f}/s ({batch_time.avg:.3f}s, {rate_avg:>7.2f}/s) '
+            #                 'Data: {data_time.val:.3f} ({data_time.avg:.3f})'.format(
+            #         step + 1, num_training_steps,
+            #         loss=losses_m,
+            #         l1_loss=l1_losses_m,
+            #         focal_loss=focal_losses_m,
+            #         lr=optimizer.param_groups[0]['lr'],
+            #         batch_time=batch_time_m,
+            #         rate=inputs.size(0) / batch_time_m.val,
+            #         rate_avg=inputs.size(0) / batch_time_m.avg,
+            #         data_time=data_time_m))
             # scheduler
             if scheduler:
                 scheduler.step()
@@ -164,9 +142,33 @@ def training(model, train_dataloader, valid_dataloader, criterion, optimizer, sc
 
             step += 1
 
-            if step == num_training_steps:
-                train_mode = False
-                break
+        eval_metrics = evaluate(
+            model=model,
+            dataloader=valid_dataloader,
+            device=device
+        )
+        model.train()
+
+        eval_log = dict([(f'eval_{k}', v) for k, v in eval_metrics.items()])
+
+        # wandb
+        if use_wandb:
+            wandb.log(eval_log, step=step)
+
+        # checkpoint
+        if best_score < np.mean(list(eval_metrics.values())):
+            # save best score
+            state = {'best_step': step}
+            state.update(eval_log)
+            json.dump(state, open(os.path.join(save_dir, 'best_score.json'), 'w'), indent='\t')
+
+            # save best model
+            torch.save(model.state_dict(), os.path.join(save_dir, f'best_model.pt'))
+
+            logger.info(
+                'Best Score {0:.3%} to {1:.3%}'.format(best_score, np.mean(list(eval_metrics.values()))))
+
+            best_score = np.mean(list(eval_metrics.values()))
 
     # print best score and step
     logger.info('Best Metric: {0:.3%} (step {1:})'.format(best_score, state['best_step']))
@@ -193,7 +195,7 @@ def evaluate(model, dataloader, device: str = 'cpu'):
             inputs, masks, targets = inputs.to(device), masks.to(device), targets.to(device)
 
             # predict
-            outputs = model(inputs)
+            outputs, weights = model(inputs)
             outputs = F.softmax(outputs, dim=1)
             anomaly_score_i = torch.topk(torch.flatten(outputs[:, 1, :], start_dim=1), 100)[0].mean(dim=1)
 
