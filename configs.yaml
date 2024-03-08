@@ -5,7 +5,7 @@ DATASET:
   datadir: ./datasets/MVTec
   texture_source_dir: ./datasets/dtd/images
   anomaly_mask_info: ./anomaly_mask.json
-  target: null
+  target: wafer
   resize:
     - 256 # height
     - 256 # width

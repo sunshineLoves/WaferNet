@@ -1,4 +1,9 @@
 {
+    "wafer": {
+        "use_mask"     : true,
+        "bg_threshold" : 50,
+        "bg_reverse"   : false
+    },
     "hazelnut": {
         "use_mask"     : true,
         "bg_threshold" : 50,

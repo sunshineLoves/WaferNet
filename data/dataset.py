@@ -194,7 +194,7 @@ class MemSegDataset(Dataset):
         
         # generate binary mask of gray scale image
         _, target_background_mask = cv2.threshold(img_gray, self.bg_threshold, 255, cv2.THRESH_BINARY)
-        target_background_mask = target_background_mask.astype(np.bool).astype(np.int)
+        target_background_mask = target_background_mask.astype(np.bool_).astype(np.int_)
 
         # invert mask for foreground mask
         if self.bg_reverse:
