@@ -138,7 +138,11 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# End of https://www.toptal.com/developers/gitignore/api/python
+# pretrained
+pretrained/
+
+# pycharm
+.idea/
 
 # datasets
 datasets/
@@ -146,3 +150,5 @@ datasets/
 # results
 saved_model/
 wandb/
+
+# End of https://www.toptal.com/developers/gitignore/api/python

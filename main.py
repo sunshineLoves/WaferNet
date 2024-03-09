@@ -89,9 +89,10 @@ def run(cfg):
     # build feature extractor
     feature_extractor = create_model(
         cfg.MODEL.feature_extractor_name, 
-        pretrained    = True, 
+        pretrained    = False, 
         features_only = True
     ).to(device)
+    feature_extractor.load_state_dict(torch.load('./pretrained/resnet18.pth'))
     ## freeze weight of layer1,2,3
     for l in ['layer1','layer2','layer3']:
         for p in feature_extractor[l].parameters():

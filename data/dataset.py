@@ -103,7 +103,7 @@ class MemSegDataset(Dataset):
                 file_path.replace('test','ground_truth').replace('.png','_mask.png'), 
                 cv2.IMREAD_GRAYSCALE
             )
-            mask = cv2.resize(mask, dsize=(self.resize[1], self.resize[0])).astype(np.bool).astype(np.int)
+            mask = cv2.resize(mask, dsize=(self.resize[1], self.resize[0])).astype(np.bool_).astype(np.int_)
 
         ## anomaly source
         if self.is_train and not self.to_memory:
@@ -194,7 +194,7 @@ class MemSegDataset(Dataset):
         
         # generate binary mask of gray scale image
         _, target_background_mask = cv2.threshold(img_gray, self.bg_threshold, 255, cv2.THRESH_BINARY)
-        target_background_mask = target_background_mask.astype(np.bool).astype(np.int)
+        target_background_mask = target_background_mask.astype(np.bool_).astype(np.int_)
 
         # invert mask for foreground mask
         if self.bg_reverse:
