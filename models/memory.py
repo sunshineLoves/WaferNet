@@ -26,7 +26,7 @@ class MemoryUnit(nn.Module):
         weight = F.linear(normalized_feature, normalized_memory)
         weight = F.softmax(weight, dim=1)
         weight = self.hard_shrink(weight)
-        weight = F.softmax(weight, dim=1)
+        weight = F.normalize(weight, p=1, dim=1)
         memory_feature = torch.matmul(weight, self.memory)
         memory_feature = memory_feature.view(batch_size, *self.shape)
         return memory_feature, weight
@@ -41,7 +41,7 @@ class MemoryModule(nn.Module):
         self.shapes = shapes
         self.threshold = threshold
         self.epsilon = epsilon
-        self.memory_units = [MemoryUnit(memory_size, shape, self.hard_shrink) for shape in shapes]
+        self.memory_units = nn.ModuleList([MemoryUnit(memory_size, shape, self.hard_shrink) for shape in shapes])
 
     def hard_shrink(self, weight: torch.Tensor) -> torch.Tensor:
         output = (F.relu(weight - self.threshold) * weight) / (torch.abs(weight - self.threshold) + self.epsilon)

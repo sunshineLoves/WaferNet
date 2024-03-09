@@ -70,9 +70,16 @@ def training(model, train_dataloader, valid_dataloader, criterion, optimizer, sc
     best_score = 0
     step = 0
     # train_mode = True
+    # eval_metrics = evaluate(
+    #     model=model,
+    #     dataloader=valid_dataloader,
+    #     device=device
+    # )
+    model.train()
+
     for epoch in range(epochs):
         end = time.time()
-        pbar = tqdm(train_dataloader, desc=f"Train Epoch {epoch + 1}/{epochs}", unit='Epoch')
+        pbar = tqdm(train_dataloader, desc=f"Train Epoch {epoch + 1}/{epochs}", unit='Batch')
         for inputs, masks, targets in pbar:
             # batch
             inputs, masks, targets = inputs.to(device), masks.to(device), targets.to(device)

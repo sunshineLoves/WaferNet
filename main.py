@@ -14,8 +14,6 @@ from log import setup_default_logging
 from utils import torch_seed
 from scheduler import CosineAnnealingWarmupRestarts
 
-os.environ['WANDB_MODE'] = 'offline'
-
 logger = logging.getLogger('train')
 
 
@@ -106,11 +104,13 @@ def run(config):
     )
     entropy_criterion = EntropyLoss(epsilon=config.TRAIN.epsilon)
 
-    optimizer = torch.optim.AdamW(
+    optimizer = torch.optim.Adam(
         params=filter(lambda p: p.requires_grad, model.parameters()),
         lr=config.OPTIMIZER.lr,
-        weight_decay=config.OPTIMIZER.weight_decay
+        # weight_decay=config.OPTIMIZER.weight_decay
     )
+    if config.TRAIN.use_wandb:
+        wandb.watch(model, log='all')
 
     if config['SCHEDULER']['use_scheduler']:
         scheduler = CosineAnnealingWarmupRestarts(
