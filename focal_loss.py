@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import List
 
 class FocalLoss(nn.Module):
 
@@ -35,3 +36,14 @@ class FocalLoss(nn.Module):
         loss = -1 * (1 - pt)**self.gamma * logpt
         if self.size_average: return loss.mean()
         else: return loss.sum()
+
+
+class EntropyLoss(nn.Module):
+    def __init__(self, epsilon: float = 1e-12):
+        super(EntropyLoss, self).__init__()
+        self.epsilon = epsilon
+
+    def forward(self, weights: List[torch.Tensor]):
+        entropy_values = [torch.mean(torch.sum(-weight * torch.log(weight + self.epsilon), dim=1))
+                          for weight in weights]
+        return sum(entropy_values) / len(entropy_values)

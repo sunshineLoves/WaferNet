@@ -8,8 +8,8 @@ import argparse
 from omegaconf import OmegaConf
 from timm import create_model
 from data import create_dataset, create_dataloader
-from models import MemSeg, MemoryBank
-from focal_loss import FocalLoss
+from models import DMemSeg, MemoryBank
+from focal_loss import FocalLoss, EntropyLoss
 from train import training
 from log import setup_default_logging
 from utils import torch_seed
@@ -55,13 +55,13 @@ def run(cfg):
         bg_reverse             = cfg.DATASET.bg_reverse
     )
 
-    memoryset = create_dataset(
-        datadir   = cfg.DATASET.datadir,
-        target    = cfg.DATASET.target, 
-        is_train  = True,
-        to_memory = True,
-        resize    = cfg.DATASET.resize
-    )
+    # memoryset = create_dataset(
+    #     datadir   = cfg.DATASET.datadir,
+    #     target    = cfg.DATASET.target,
+    #     is_train  = True,
+    #     to_memory = True,
+    #     resize    = cfg.DATASET.resize
+    # )
 
     testset = create_dataset(
         datadir  = cfg.DATASET.datadir,
@@ -99,20 +99,28 @@ def run(cfg):
             p.requires_grad = False
 
     # build memory bank
-    memory_bank = MemoryBank(
-        normal_dataset   = memoryset,
-        nb_memory_sample = cfg.MEMORYBANK.nb_memory_sample,
-        device           = device
-    )
+    # memory_bank = MemoryBank(
+    #     normal_dataset   = memoryset,
+    #     nb_memory_sample = cfg.MEMORYBANK.nb_memory_sample,
+    #     device           = device
+    # )
     ## update normal samples and save
-    memory_bank.update(feature_extractor=feature_extractor)
-    torch.save(memory_bank, os.path.join(savedir, f'memory_bank.pt'))
-    _logger.info('Update {} normal samples in memory bank'.format(cfg.MEMORYBANK.nb_memory_sample))
+    # memory_bank.update(feature_extractor=feature_extractor)
+    # torch.save(memory_bank, os.path.join(savedir, f'memory_bank.pt'))
+    # _logger.info('Update {} normal samples in memory bank'.format(cfg.MEMORYBANK.nb_memory_sample))
 
     # build MemSeg
-    model = MemSeg(
-        memory_bank       = memory_bank,
-        feature_extractor = feature_extractor
+    model = DMemSeg(
+        # memory_bank       = memory_bank,
+        feature_extractor=feature_extractor,
+        memory_size=cfg.MEMORYBANK.memory_size,
+        feature_shapes=[
+            (64, 64, 64),
+            (128, 32, 32),
+            (256, 16, 16)
+        ],
+        threshold=cfg.TRAIN.threshold,
+        epsilon=cfg.TRAIN.epsilon
     ).to(device)
 
     # Set training
@@ -121,6 +129,7 @@ def run(cfg):
         gamma = cfg.TRAIN.focal_gamma, 
         alpha = cfg.TRAIN.focal_alpha
     )
+    entropy_criterion = EntropyLoss(epsilon=cfg.TRAIN.epsilon)
 
     optimizer = torch.optim.AdamW(
         params       = filter(lambda p: p.requires_grad, model.parameters()), 
@@ -146,8 +155,8 @@ def run(cfg):
         trainloader        = trainloader, 
         validloader        = testloader,
         epochs             = cfg.TRAIN.epochs,
-        criterion          = [l1_criterion, f_criterion], 
-        loss_weights       = [cfg.TRAIN.l1_weight, cfg.TRAIN.focal_weight],
+        criterion          = (l1_criterion, f_criterion, entropy_criterion),
+        loss_weights       = (cfg.TRAIN.l1_weight, cfg.TRAIN.focal_weight, cfg.TRAIN.entropy_weight),
         optimizer          = optimizer,
         scheduler          = scheduler,
         log_interval       = cfg.LOG.log_interval,
