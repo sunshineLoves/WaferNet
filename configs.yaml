@@ -1,17 +1,17 @@
-EXP_NAME: MemSeg
+EXP_NAME: origin MemSeg
 SEED: 42
 
 DATASET:
   datadir: /root/autodl-tmp/wafer_segmentation
   texture_source_dir: /root/autodl-tmp/dtd/images
   anomaly_mask_info: ./anomaly_mask.json
-  target: null
+  target: wafer
   resize:
     - 256 # height
     - 256 # width
   structure_grid_size: 8
   transparency_range:
-    - 0.15 # under bound
+    - 0.5 # under bound
     - 1. # upper bound
   perlin_scale: 6
   min_perlin_scale: 0
@@ -29,6 +29,7 @@ MODEL:
 
 TRAIN:
   batch_size: 8
+  epochs: 64
   num_training_steps: 5000
   l1_weight: 0.6
   focal_weight: 0.4
