@@ -98,11 +98,11 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
                 },
                 step=step)
             pbar.set_postfix({'Loss': losses_m.val,
-                              'Loss Avg': losses_m.avg,
+                              # 'Loss Avg': losses_m.avg,
                               'L1 Loss': l1_losses_m.val,
-                              'L1 Loss Avg': l1_losses_m.avg,
+                              # 'L1 Loss Avg': l1_losses_m.avg,
                               'Focal Loss': focal_losses_m.val,
-                              'Focal Loss Avg': focal_losses_m.avg,
+                              # 'Focal Loss Avg': focal_losses_m.avg,
                               'LR': optimizer.param_groups[0]['lr']
                               })
             # if (step+1) % log_interval == 0 or step == 0:
