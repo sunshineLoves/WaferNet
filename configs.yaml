@@ -5,7 +5,7 @@ DATASET:
   datadir: /root/autodl-tmp/wafer_segmentation
   texture_source_dir: /root/autodl-tmp/dtd/images
   anomaly_mask_info: ./anomaly_mask.json
-  target: wafer
+  target: null
   resize:
     - 256 # height
     - 256 # width

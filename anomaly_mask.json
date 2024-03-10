@@ -1,5 +1,10 @@
 {
-    "wafer": {
+    "map": {
+        "use_mask"     : false,
+        "bg_threshold" : null,
+        "bg_reverse"   : null
+    },
+    "product": {
         "use_mask"     : false,
         "bg_threshold" : null,
         "bg_reverse"   : null
