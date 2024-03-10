@@ -44,6 +44,7 @@ class EntropyLoss(nn.Module):
         self.epsilon = epsilon
 
     def forward(self, weights: List[torch.Tensor]):
+        # (batch_size * H * W, memory_size)
         entropy_values = [torch.mean(torch.sum(-weight * torch.log(weight + self.epsilon), dim=1))
                           for weight in weights]
         return sum(entropy_values) / len(entropy_values)

@@ -114,11 +114,7 @@ def run(cfg):
         # memory_bank       = memory_bank,
         feature_extractor=feature_extractor,
         memory_size=cfg.MEMORYBANK.memory_size,
-        feature_shapes=[
-            (64, 64, 64),
-            (128, 32, 32),
-            (256, 16, 16)
-        ],
+        feature_channels=[64, 128, 256],
         threshold=cfg.TRAIN.threshold,
         epsilon=cfg.TRAIN.epsilon
     ).to(device)

@@ -6,42 +6,44 @@ import numpy as np
 from typing import List, Callable, Tuple
 
 class MemoryUnit(nn.Module):
-    def __init__(self, memory_size: int, shape: Tuple[int, int, int],
+    def __init__(self, memory_size: int, channel: int,
                  hard_shrink: Callable[[torch.Tensor], torch.Tensor]):
         super(MemoryUnit, self).__init__()
         self.memory_size = memory_size
-        self.shape = shape
+        self.channel = channel
         self.hard_shrink = hard_shrink
-        # (memory_size, C * H * W)
-        self.memory = nn.Parameter(torch.Tensor(self.memory_size, np.prod(shape)))
+        # (memory_size, C)
+        self.memory = nn.Parameter(torch.Tensor(self.memory_size, channel))
 
     def forward(self, feature: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch_size = feature.size(0)
-        # (batch_size, C * H * W)
-        flatten_feature = feature.view(batch_size, -1)
+        channel = feature.size(1)
+        # (batch_size * H * W, C)
+        flatten_feature = feature.view(-1, channel)
         normalized_feature = F.normalize(flatten_feature, p=2, dim=1)
-        # (memory_size, C * H * W)
+        # (memory_size, C)
         normalized_memory = F.normalize(self.memory, p=2, dim=1)
-        # (batch_size, memory_size)
+        # (batch_size * H * W, memory_size)
         weight = F.linear(normalized_feature, normalized_memory)
         weight = F.softmax(weight, dim=1)
         weight = self.hard_shrink(weight)
         weight = F.normalize(weight, p=1, dim=1)
+        # (batch_size * H * W, C)
         memory_feature = torch.matmul(weight, self.memory)
-        memory_feature = memory_feature.view(batch_size, *self.shape)
+        # (batch_size, C, H, W)
+        memory_feature = memory_feature.view(feature.shape)
         return memory_feature, weight
 
 
 class MemoryModule(nn.Module):
-    def __init__(self, memory_size: int, shapes: List[Tuple[int, int, int]], threshold: float = 0.0025,
+    def __init__(self, memory_size: int, channels: List[int], threshold: float = 0.0025,
                  epsilon: float = 1e-12):
         super(MemoryModule, self).__init__()
         self.memory_size = memory_size
-        self.num_feature = len(shapes)
-        self.shapes = shapes
+        self.num_feature = len(channels)
+        self.channels = channels
         self.threshold = threshold
         self.epsilon = epsilon
-        self.memory_units = nn.ModuleList([MemoryUnit(memory_size, shape, self.hard_shrink) for shape in shapes])
+        self.memory_units = nn.ModuleList([MemoryUnit(memory_size, channel, self.hard_shrink) for channel in channels])
 
     def hard_shrink(self, weight: torch.Tensor) -> torch.Tensor:
         output = (F.relu(weight - self.threshold) * weight) / (torch.abs(weight - self.threshold) + self.epsilon)

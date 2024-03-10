@@ -5,11 +5,11 @@ from .memory_module import MemoryModule
 from typing import List, Tuple
 
 class DMemSeg(nn.Module):
-    def __init__(self, feature_extractor, memory_size: int, feature_shapes: List[Tuple[int, int, int]],
+    def __init__(self, feature_extractor, memory_size: int, feature_channels: List[int],
                  threshold: float = 0.0025, epsilon: float = 1e-12):
         super(DMemSeg, self).__init__()
 
-        self.memory_module = MemoryModule(memory_size, feature_shapes, threshold, epsilon)
+        self.memory_module = MemoryModule(memory_size, feature_channels, threshold, epsilon)
         self.feature_extractor = feature_extractor
         self.msff = MSFF()
         self.decoder = Decoder()
