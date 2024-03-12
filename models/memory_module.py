@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -14,6 +16,8 @@ class MemoryUnit(nn.Module):
         self.hard_shrink = hard_shrink
         # (memory_size, C)
         self.memory = nn.Parameter(torch.Tensor(self.memory_size, channel))
+        stdv = 1. / math.sqrt(self.memory.size(1))
+        self.memory.data.uniform_(-stdv, stdv)
 
     def forward(self, feature: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         channel = feature.size(1)
