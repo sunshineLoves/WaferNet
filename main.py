@@ -33,13 +33,14 @@ def run(cfg):
     # savedir
     # cfg.EXP_NAME = cfg.EXP_NAME + f"-{cfg.DATASET.target}"
     savedir = os.path.join(cfg.RESULT.savedir, cfg.GROUP, cfg.EXP_NAME, cfg.DATASET.target)
-    os.makedirs(savedir, exist_ok=True)
-    
+
     # wandb
     if cfg.TRAIN.use_wandb:
         wandb.init(project='WaferNet', name=run_name, group=cfg.GROUP, config=OmegaConf.to_container(cfg))
         # 使用 wandb 时将 run id 作为 model 保存目录
         savedir = os.path.join(savedir, str(wandb.run.id))
+        
+    os.makedirs(savedir, exist_ok=True)
 
     # build datasets
     trainset = create_dataset(
