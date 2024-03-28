@@ -30,7 +30,7 @@ MODEL:
 
 TRAIN:
   batch_size: 8
-  epochs: 64
+  epochs: 5
   num_training_steps: 5000
   l1_weight: 0.6
   focal_weight: 0.4

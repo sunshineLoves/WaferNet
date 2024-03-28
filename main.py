@@ -39,7 +39,6 @@ def run(cfg):
         wandb.init(project='WaferNet', name=run_name, group=cfg.GROUP, config=OmegaConf.to_container(cfg))
         # 使用 wandb 时将 run id 作为 model 保存目录
         savedir = os.path.join(savedir, str(wandb.run.id))
-        
     os.makedirs(savedir, exist_ok=True)
 
     # build datasets
