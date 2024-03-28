@@ -56,6 +56,8 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
 
     # training
     best_score = 0
+    best_metrics = {}
+    entire_metrics = np.zeros((4, epochs), dtype=np.float32)
     step = 0
     train_mode = True
     for epoch in range(epochs):
@@ -143,25 +145,31 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
         )
         model.train()
 
-        eval_log = dict([(f'eval_{k}', v) for k, v in eval_metrics.items()])
+        score = np.mean(list(eval_metrics.values()))
+        eval_log = {f'eval_{k}': v for k, v in eval_metrics.items()}
+        eval_log['eval_score'] = score
+        entire_metrics[:, epoch] = eval_log.values()
+        # eval_log = dict([(f'eval_{k}', v) for k, v in eval_metrics.items()])
 
         # wandb
         if use_wandb:
             wandb.log(eval_log, step=step)
 
         # checkpoint
-        if best_score < np.mean(list(eval_metrics.values())):
+        # if best_score < np.mean(list(eval_metrics.values())):
+        if best_score < score:
             # save best score
             state = {'best_step':step}
             state.update(eval_log)
             json.dump(state, open(os.path.join(savedir, 'best_score.json'),'w'), indent='\t')
 
             # save best model
-            torch.save(model.state_dict(), os.path.join(savedir, f'best_model.pt'))
+            torch.save(model.state_dict(), os.path.join(savedir, 'best_model.pt'))
 
-            _logger.info('Best Score {0:.3%} to {1:.3%}'.format(best_score, np.mean(list(eval_metrics.values()))))
+            _logger.info('Best Score {0:.3%} to {1:.3%}'.format(best_score, score))
 
-            best_score = np.mean(list(eval_metrics.values()))
+            best_score = score
+            best_metrics = eval_log
 
     # print best score and step
     _logger.info('Best Metric: {0:.3%} (step {1:})'.format(best_score, state['best_step']))
@@ -174,7 +182,16 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
     state.update(eval_log)
     json.dump(state, open(os.path.join(savedir, 'latest_score.json'),'w'), indent='\t')
 
-    
+    if use_wandb:
+        wandb.run.summary(best_metrics)
+        mean_metrics = entire_metrics.mean(axis=1)
+        max_metrics = entire_metrics.max(axis=1)
+        var_metrics = entire_metrics.var(axis=1)
+        wandb.run.summary.update({
+            'mean': mean_metrics,
+            'max': max_metrics,
+            'var': var_metrics
+        })
 
         
 def evaluate(model, dataloader, device: str = 'cpu'):
