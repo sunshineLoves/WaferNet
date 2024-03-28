@@ -57,6 +57,8 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
 
     # training
     best_score = 0
+    best_metrics = {}
+    entire_metrics = np.zeros((4, epochs), dtype=np.float32)
     step = 0
     train_mode = True
     for epoch in range(epochs):
@@ -144,14 +146,19 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
         )
         model.train()
 
-        eval_log = dict([(f'eval_{k}', v) for k, v in eval_metrics.items()])
+        score = np.mean(list(eval_metrics.values()))
+        eval_log = {f'eval_{k}': v for k, v in eval_metrics.items()}
+        eval_log['eval_score'] = score
+        entire_metrics[:, epoch] = list(eval_log.values())
+        # eval_log = dict([(f'eval_{k}', v) for k, v in eval_metrics.items()])
 
         # wandb
         if use_wandb:
             wandb.log(eval_log, step=step)
 
         # checkpoint
-        if best_score < np.mean(list(eval_metrics.values())):
+        # if best_score < np.mean(list(eval_metrics.values())):
+        if best_score < score:
             # save best score
             state = {'best_step':step}
             state.update(eval_log)
@@ -175,7 +182,16 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
     state.update(eval_log)
     json.dump(state, open(os.path.join(savedir, 'latest_score.json'),'w'), indent='\t')
 
-
+    if use_wandb:
+        wandb.run.summary.update(best_metrics)
+        mean_metrics = entire_metrics.mean(axis=1)
+        max_metrics = entire_metrics.max(axis=1)
+        var_metrics = entire_metrics.var(axis=1)
+        wandb.run.summary.update({
+            'mean': mean_metrics,
+            'max': max_metrics,
+            'var': var_metrics
+        })
 
         
 def evaluate(model, dataloader, device: str = 'cpu'):

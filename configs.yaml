@@ -1,4 +1,5 @@
-EXP_NAME: augment DMemSeg v2
+GROUP: WaferNet
+EXP_NAME: MemV2
 SEED: 42
 
 DATASET:
