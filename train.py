@@ -183,11 +183,11 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
     json.dump(state, open(os.path.join(savedir, 'latest_score.json'),'w'), indent='\t')
 
     if use_wandb:
-        wandb.run.summary.update(best_metrics)
         mean_metrics = entire_metrics.mean(axis=1)
         max_metrics = entire_metrics.max(axis=1)
         var_metrics = entire_metrics.var(axis=1)
         wandb.run.summary.update({
+            'best': best_metrics,
             'mean': mean_metrics,
             'max': max_metrics,
             'var': var_metrics
