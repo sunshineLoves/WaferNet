@@ -148,7 +148,7 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
         score = np.mean(list(eval_metrics.values()))
         eval_log = {f'eval_{k}': v for k, v in eval_metrics.items()}
         eval_log['eval_score'] = score
-        entire_metrics[:, epoch] = eval_log.values()
+        entire_metrics[:, epoch] = list(eval_log.values())
         # eval_log = dict([(f'eval_{k}', v) for k, v in eval_metrics.items()])
 
         # wandb
