@@ -1,4 +1,5 @@
-EXP_NAME: origin MemSeg
+GROUP: MemSeg
+EXP_NAME: baseline
 SEED: 42
 
 DATASET:
