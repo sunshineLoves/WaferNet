@@ -169,7 +169,8 @@ def training(model, trainloader, validloader, criterion, optimizer, scheduler, e
 
             _logger.info('Best Score {0:.3%} to {1:.3%}'.format(best_score, np.mean(list(eval_metrics.values()))))
 
-            best_score = np.mean(list(eval_metrics.values()))
+            best_score = score
+            best_metrics = eval_log
 
     # print best score and step
     _logger.info('Best Metric: {0:.3%} (step {1:})'.format(best_score, state['best_step']))

@@ -9,6 +9,11 @@
         "bg_threshold" : null,
         "bg_reverse"   : null
     },
+    "product2": {
+        "use_mask"     : false,
+        "bg_threshold" : null,
+        "bg_reverse"   : null
+    },
     "hazelnut": {
         "use_mask"     : true,
         "bg_threshold" : 50,
